@@ -12,7 +12,8 @@ artifacts:
   name: deliverable
 notifications:
 - provider: Slack
-  incoming_webhook: /Nbn13tBKGnjqCUJVO23s/Ai7dpGeHVJkahIa/QwlYBrO8Ps9I2exOjlCxjIb+ouSj0oNwNHSdJcwLKezLAOpbqVlxVG+WcdhvnrlA8VF+8=
+  incoming_webhook:
+    secure: /Nbn13tBKGnjqCUJVO23s/Ai7dpGeHVJkahIa/QwlYBrO8Ps9I2exOjlCxjIb+ouSj0oNwNHSdJcwLKezLAOpbqVlxVG+WcdhvnrlA8VF+8=
   channel: exec_in_usersession
   on_build_success: true
   on_build_failure: true
