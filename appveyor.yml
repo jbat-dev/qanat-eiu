@@ -1,0 +1,19 @@
+version: 1.0.{build}
+branches:
+  only:
+    - master
+image: Visual Studio 2019
+configuration: Release
+platform: x64
+build:
+  verbosity: minimal
+artifacts:
+- path: '\x64\Release\exec_in_usersession.exe'
+  name: deliverable
+notifications:
+- provider: Slack
+  incoming_webhook: /Nbn13tBKGnjqCUJVO23s/Ai7dpGeHVJkahIa/QwlYD0wJEorLtSAJkD1c6WTs+6iz2QHXrECMbP4E35xbsaFVQpdGNTJKQWGltKXygptNE=
+  channel: exec_in_usersession
+  on_build_success: true
+  on_build_failure: true
+  on_build_status_changed: true
