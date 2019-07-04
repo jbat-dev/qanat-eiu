@@ -16,4 +16,3 @@ JB Advanced Technology Inc. and okahashi117 2019
 
 ## Thanks!
 HABARA!!!
-
