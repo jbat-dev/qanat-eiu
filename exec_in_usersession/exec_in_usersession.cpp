@@ -64,7 +64,6 @@ namespace {
 
 		wcscpy_s(arg, (param.empty() ? app.c_str() : (app + L" " + param).c_str()));
 
-		//		STARTUPINFO         si = { sizeof(STARTUPINFO), nullptr, L"winsta0\\default" };
 		STARTUPINFO         si = { sizeof(STARTUPINFO), nullptr };
 		si.lpDesktop = (LPWSTR)L"winsta0\\default";
 
