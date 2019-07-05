@@ -92,8 +92,10 @@ BOOL process::createProcess(const std::wstring& app, const std::wstring& param, 
 
 			// CreateProcessAsUser のためにトークンを複製し，プライマリトークンを作成する
 			if (DuplicateTokenEx(processToken, MAXIMUM_ALLOWED, nullptr, SecurityIdentification, TokenPrimary, &userToken.m_h)) {
-				DWORD  sessionId = WTSGetActiveConsoleSessionId();
-				DWORD  creationFlags = CREATE_NEW_CONSOLE | NORMAL_PRIORITY_CLASS;
+                // DWORD  sessionId = WTSGetActiveConsoleSessionId();  // pedding //
+                DWORD sessionId = 0;
+                ProcessIdToSessionId(GetProcessId(process), &sessionId);
+                DWORD  creationFlags = CREATE_NEW_CONSOLE | NORMAL_PRIORITY_CLASS;
 				LPVOID env = nullptr;
 
 				// アクティブユーザのセッションを設定します
