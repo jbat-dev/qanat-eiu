@@ -1,0 +1,31 @@
+version: 1.0.{build}
+branches:
+  only:
+  - master
+tags:
+  exclude:
+  - /^Release-.*/
+skip_non_tags: true
+image: Visual Studio 2019
+configuration: Release
+platform: x64
+build:
+  verbosity: minimal
+artifacts:
+- path: '\$(platform)\$(configuration)\exec_in_usersession.exe'
+  name: deliverable
+deploy:
+- provider: GitHub
+  release: Release-$(APPVEYOR_REPO_TAG_NAME)
+  auth_token:
+    secure: ypxNaqaTazUhmiNFzlay4+o9aZJIaYMeYATojj3KK0OH9aHCm4inW18dGI4jkUIE
+  artifact: deliverable
+  prerelease: true
+notifications:
+- provider: Slack
+  incoming_webhook:
+    secure: /Nbn13tBKGnjqCUJVO23s/Ai7dpGeHVJkahIa/QwlYD0wJEorLtSAJkD1c6WTs+6NKXb6ZRThiH87RUoTdAaQtbkmRTldtIaWp0ArZGVzjE=
+  channel: exec_in_usersession
+  on_build_success: true
+  on_build_failure: true
+  on_build_status_changed: true
