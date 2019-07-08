@@ -8,7 +8,7 @@ platform: x64
 build:
   verbosity: minimal
 artifacts:
-- path: '\x64\Release\exec_in_usersession.exe'
+- path: '\$(platform)\$(configuration)\exec_in_usersession.exe'
   name: deliverable
 notifications:
 - provider: Slack
