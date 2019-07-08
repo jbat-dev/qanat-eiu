@@ -3,7 +3,7 @@ branches:
   only:
     - master
 image: Visual Studio 2019
-configuration: Relese
+configuration: Release
 platform: x64
 build:
   verbosity: minimal
