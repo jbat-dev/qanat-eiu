@@ -3,10 +3,12 @@ branches:
   only:
     - master
 image: Visual Studio 2019
+configuration: Debug
+platform: x32
 build:
   verbosity: minimal
 artifacts:
-- path: '\x64\Debug\exec_in_usersession.exe'
+- path: '\$(configuration)\$(platform)\exec_in_usersession.exe'
   name: deliverable
 notifications:
 - provider: Slack
