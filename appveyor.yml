@@ -4,8 +4,6 @@ branches:
     - master
 image: Visual Studio 2019
 configuration: Release
-before_build:
-- nuget restore
 platform: x64
 build:
   verbosity: minimal
