@@ -4,7 +4,7 @@ branches:
     - master
 image: Visual Studio 2019
 configuration: Debug
-platform: Win32
+platform: x64
 build:
   verbosity: minimal
 artifacts:
