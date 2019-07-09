@@ -13,12 +13,12 @@ artifacts:
   name: deliverable
 deploy:
 - provider: GitHub
-  tag: $(APPVEYOR_REPO_TAG_NAME)
-  release: Release-$(APPVEYOR_REPO_TAG_NAME)
+  release: $(APPVEYOR_REPO_TAG_NAME)
   auth_token:
     secure: ypxNaqaTazUhmiNFzlay4+o9aZJIaYMeYATojj3KK0OH9aHCm4inW18dGI4jkUIE
   artifact: deliverable
   prerelease: true
+  force_update: true
 notifications:
 - provider: Slack
   incoming_webhook:
