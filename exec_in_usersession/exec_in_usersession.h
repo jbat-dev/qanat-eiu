@@ -7,7 +7,8 @@
 #endif
 
 namespace process {
-    BOOL createProcess(const std::wstring& app, const std::wstring& param, HANDLE process = nullptr);
+    BOOL    createProcess(const std::wstring& app, const std::wstring& param, HANDLE process = nullptr);
+    HANDLE  getProcessTokenHandleWithUserName(const std::wstring& pname, std::wstring* puname = nullptr);
     int  test(int);
 }
 
