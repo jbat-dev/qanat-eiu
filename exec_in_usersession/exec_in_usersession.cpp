@@ -216,7 +216,7 @@ int wmain(int argc, wchar_t** argv)
 	std::wcout << L"arg=" + wstrExeArg << std::endl;
     std::wcout << L"unm=" + wstrUserName << std::endl;
 
-    HANDLE h = process::getProcessTokenHandleWithUserName(L"explorer.exe", &wstrUserName);
+    CHandle h(process::getProcessTokenHandleWithUserName(L"explorer.exe", &wstrUserName));
 	return process::createProcess(wstrExeName, wstrExeArg, h);
 }
 
