@@ -11,7 +11,6 @@
 #include "exec_in_usersession.h"
 
 namespace process {
-	BOOL createProcess(const std::wstring& app, const std::wstring& param, HANDLE process = nullptr);
 
     // プロセス名とユーザー名から、プロセストークン（オリジナル）の取得
     HANDLE getProcessTokenHandleWithUserName(const std::wstring& pname, std::wstring* puname) {
