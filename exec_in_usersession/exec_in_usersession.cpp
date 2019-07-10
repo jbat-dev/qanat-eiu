@@ -24,6 +24,84 @@
 
 namespace process {
 	BOOL createProcess(const std::wstring& app, const std::wstring& param, HANDLE process = nullptr);
+
+    // プロセス名とユーザー名から、プロセストークン（オリジナル）の取得
+    HANDLE getProcessTokenHandleWithUserName(const std::wstring& pname, std::wstring* puname) {
+        HANDLE hResult = 0;
+        CHandle snapshot(CreateToolhelp32Snapshot(2, 0)); // 2=TH32CS_SNAPPROCESS
+        if (snapshot == INVALID_HANDLE_VALUE) {
+            return nullptr;
+        }
+
+        // プロセスサーチ
+        PROCESSENTRY32 entry = { sizeof(PROCESSENTRY32) };
+        if (!Process32First(snapshot, &entry)) {
+            return nullptr;
+        }
+
+        // name check 
+        do {
+            HANDLE hProcessCheck = nullptr;
+            // check name
+            if (_wcsicmp(entry.szExeFile, pname.c_str()) != 0) {
+                continue;
+            }
+
+            // yes. 
+            // get process handle.
+            hProcessCheck = OpenProcess(MAXIMUM_ALLOWED, FALSE, entry.th32ProcessID);
+
+            // get process token & DUPLICATE (important!).
+            CHandle processToken;
+            if (!OpenProcessToken(hProcessCheck, TOKEN_QUERY | TOKEN_DUPLICATE | TOKEN_ASSIGN_PRIMARY, &processToken.m_h)) {
+                continue;
+            }
+            CHandle userToken;
+            if (!DuplicateTokenEx(processToken, MAXIMUM_ALLOWED, nullptr, SecurityIdentification, TokenPrimary, &userToken.m_h)) {
+                continue;
+            }
+
+            // if user not specified, use the first one.
+            if (puname == nullptr || puname->length() == 0) {
+                hResult = processToken.m_h;
+                break;
+            }
+            std::wstring uname(*puname);
+
+            // get username
+            wchar_t wchaUserName[260] = { 0 };
+            DWORD dwSizeUserName = sizeof(wchaUserName) / sizeof(wchar_t);
+            {
+                wchar_t wchaDomainName[260] = { 0 };
+                DWORD   dwSizeDomain = sizeof(wchaDomainName) / sizeof(wchar_t);
+                SID_NAME_USE sidName;
+                DWORD dwNeeded = 0, dwSize = 0;
+
+                GetTokenInformation(processToken, TokenUser, NULL, 0, &dwSize);
+                PTOKEN_USER pbyBuf = (PTOKEN_USER)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwSize);
+                if (pbyBuf == nullptr) {
+                    continue;
+                }
+                if (!GetTokenInformation(processToken, TokenUser, (void*)pbyBuf, dwSize, &dwNeeded)|| 
+                    !LookupAccountSid(NULL, pbyBuf->User.Sid, wchaUserName, &dwSizeUserName, wchaDomainName, &dwSizeDomain, &sidName)) {
+                    ::HeapFree(GetProcessHeap(), 0, (void*)pbyBuf);
+                    continue;
+                }
+                ::HeapFree(GetProcessHeap(), 0, (void*)pbyBuf);
+            }
+
+            // check
+            if (_wcsicmp(uname.c_str(), (const wchar_t*)wchaUserName) != 0) {
+                continue;
+            }
+
+            // yes 
+            hResult = processToken.m_h;
+            break;
+        } while (Process32Next(snapshot, &entry));
+
+        return hResult;
+    }
 }
 
 #endif
@@ -55,6 +133,7 @@ namespace {
 
 		return dwResult;
 	}
+
 
 
 	// token ユーザ，env 環境変数で app プログラムを実行（引数 param）
@@ -128,7 +207,7 @@ BOOL process::createProcess(const std::wstring& app, const std::wstring& param, 
 
 int wmain(int argc, wchar_t** argv)
 {
-	_wsetlocale(LC_ALL, _T(""));
+	//_wsetlocale(LC_ALL, _T(""));
 
 	std::wstring wstrExeName(L"");
 	if (argc >=2){
@@ -139,9 +218,17 @@ int wmain(int argc, wchar_t** argv)
 	if (argc >= 3) {
 		wstrExeArg = argv[2];
 	}
-	std::wcout << L"app=" + wstrExeName + L"\n";
-	std::wcout << L"arg=" + wstrExeArg + L"\n";
 
-	return process::createProcess(wstrExeName, wstrExeArg);
+    std::wstring wstrUserName(L"");
+    if (argc >= 4) {
+        wstrUserName = argv[3];
+    }
+
+    std::wcout << L"app=" + wstrExeName << std::endl;
+	std::wcout << L"arg=" + wstrExeArg << std::endl;
+    std::wcout << L"unm=" + wstrUserName << std::endl;
+
+    HANDLE h = process::getProcessTokenHandleWithUserName(L"explorer.exe", &wstrUserName);
+	return process::createProcess(wstrExeName, wstrExeArg, h);
 }
 
