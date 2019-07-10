@@ -11,13 +11,13 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace UnitTest1_namespace
 {
-	TEST_CLASS(UnitTest1_class)
-	{
-	public:
-		
-		TEST_METHOD(TestMethod1)
-		{
+    TEST_CLASS(UnitTest1_class)
+    {
+    public:
+        
+        TEST_METHOD(TestMethod1)
+        {
             Assert::AreEqual(99, process::test(99));
-		}
-	};
+        }
+    };
 }
