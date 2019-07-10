@@ -8,6 +8,7 @@
 
 namespace process {
     BOOL createProcess(const std::wstring& app, const std::wstring& param, HANDLE process = nullptr);
+    int  test(int);
 }
 
 #endif

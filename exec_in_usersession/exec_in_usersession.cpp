@@ -71,27 +71,29 @@ BOOL process::createProcess(const std::wstring& app, const std::wstring& param, 
 			CHandle userToken;
 
 			// CreateProcessAsUser のためにトークンを複製し，プライマリトークンを作成する
-			if (DuplicateTokenEx(processToken, MAXIMUM_ALLOWED, nullptr, SecurityIdentification, TokenPrimary, &userToken.m_h)) {
+            if (DuplicateTokenEx(processToken, MAXIMUM_ALLOWED, nullptr, SecurityIdentification, TokenPrimary, &userToken.m_h)) {
                 // DWORD  sessionId = WTSGetActiveConsoleSessionId();  // pedding //
                 DWORD sessionId = 0;
                 ProcessIdToSessionId(GetProcessId(process), &sessionId);
                 DWORD  creationFlags = CREATE_NEW_CONSOLE | NORMAL_PRIORITY_CLASS;
-				LPVOID env = nullptr;
+                LPVOID env = nullptr;
 
-				// アクティブユーザのセッションを設定します
-				SetTokenInformation(userToken, TokenSessionId, &sessionId, sizeof(DWORD));
+                // アクティブユーザのセッションを設定します
+                SetTokenInformation(userToken, TokenSessionId, &sessionId, sizeof(DWORD));
 
-				// 環境変数を設定します
-				if (CreateEnvironmentBlock(&env, userToken, TRUE)) {
-					creationFlags |= CREATE_UNICODE_ENVIRONMENT;
-				}
-				else {
-					env = nullptr;
-				}
+                // 環境変数を設定します
+                if (CreateEnvironmentBlock(&env, userToken, TRUE)) {
+                    creationFlags |= CREATE_UNICODE_ENVIRONMENT;
+                }
+                else {
+                    env = nullptr;
+                }
 
-				retval = createProcessAsUser(app, param, userToken, creationFlags, env);
+                retval = createProcessAsUser(app, param, userToken, creationFlags, env);
 
-				DestroyEnvironmentBlock(env);
+                if (env != nullptr) {
+                    DestroyEnvironmentBlock(env);
+                }
 			}
 		}
 	}
@@ -105,6 +107,10 @@ BOOL process::createProcess(const std::wstring& app, const std::wstring& param, 
 	return retval;
 }
 
+int process::test(int x) 
+{
+    return x;
+}
 
 int wmain(int argc, wchar_t** argv)
 {
