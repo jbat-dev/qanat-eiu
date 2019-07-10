@@ -116,8 +116,6 @@ namespace {
 		return dwResult;
 	}
 
-
-
 	// token ユーザ，env 環境変数で app プログラムを実行（引数 param）
 	BOOL createProcessAsUser(const std::wstring& app, const std::wstring& param, HANDLE token, DWORD creationFlags, LPVOID env)
 	{
@@ -139,53 +137,48 @@ namespace {
 }
 
 
-BOOL process::createProcess(const std::wstring& app, const std::wstring& param, HANDLE process)
+BOOL process::createProcess(const std::wstring& app, const std::wstring& param, HANDLE src_process)
 {
-	BOOL retval = FALSE;
+    if (src_process == nullptr) {
+        CHandle target(OpenProcess(MAXIMUM_ALLOWED, FALSE, getProcessId(L"explorer.exe")));
+        if (!target) {
+            return FALSE;
+        }
+        return createProcess(app, param, target);
+    }
 
-	if (process) {
-		CHandle processToken;
+    // src process is specified. 
+    CHandle processToken;
+    if (!OpenProcessToken(src_process, TOKEN_QUERY | TOKEN_DUPLICATE | TOKEN_ASSIGN_PRIMARY, &processToken.m_h)) {
+        return FALSE;
+    }
 
-		// process のユーザトークン
-		// CreateProcessAsUser が TOKEN_QUERY | TOKEN_DUPLICATE | TOKEN_ASSIGN_PRIMARY を要求することに注意
-		if (OpenProcessToken(process, TOKEN_QUERY | TOKEN_DUPLICATE | TOKEN_ASSIGN_PRIMARY, &processToken.m_h)) {
-			CHandle userToken;
+    CHandle userToken;
+    if (!DuplicateTokenEx(processToken, MAXIMUM_ALLOWED, nullptr, SecurityIdentification, TokenPrimary, &userToken.m_h)) {
+        return FALSE;
+    }
 
-			// CreateProcessAsUser のためにトークンを複製し，プライマリトークンを作成する
-            if (DuplicateTokenEx(processToken, MAXIMUM_ALLOWED, nullptr, SecurityIdentification, TokenPrimary, &userToken.m_h)) {
-                // DWORD  sessionId = WTSGetActiveConsoleSessionId();  // pedding //
-                DWORD sessionId = 0;
-                ProcessIdToSessionId(GetProcessId(process), &sessionId);
-                DWORD  creationFlags = CREATE_NEW_CONSOLE | NORMAL_PRIORITY_CLASS;
-                LPVOID env = nullptr;
+    DWORD sessionId = 0;
+    ProcessIdToSessionId(GetProcessId(src_process), &sessionId);
 
-                // アクティブユーザのセッションを設定します
-                SetTokenInformation(userToken, TokenSessionId, &sessionId, sizeof(DWORD));
+    DWORD  creationFlags = CREATE_NEW_CONSOLE | NORMAL_PRIORITY_CLASS;
+    LPVOID env = nullptr;
+    SetTokenInformation(userToken, TokenSessionId, &sessionId, sizeof(DWORD));
 
-                // 環境変数を設定します
-                if (CreateEnvironmentBlock(&env, userToken, TRUE)) {
-                    creationFlags |= CREATE_UNICODE_ENVIRONMENT;
-                }
-                else {
-                    env = nullptr;
-                }
+    if (CreateEnvironmentBlock(&env, userToken, TRUE)) {
+        creationFlags |= CREATE_UNICODE_ENVIRONMENT;
+    }
+    else {
+        env = nullptr;
+    }
 
-                retval = createProcessAsUser(app, param, userToken, creationFlags, env);
+    createProcessAsUser(app, param, userToken, creationFlags, env);
 
-                if (env != nullptr) {
-                    DestroyEnvironmentBlock(env);
-                }
-			}
-		}
-	}
-	else { 
-		CHandle target(OpenProcess(MAXIMUM_ALLOWED, FALSE, getProcessId(L"explorer.exe")));
-		if (target) {
-			return createProcess(app, param, target);
-		}
-	}
+    if (env != nullptr) {
+        DestroyEnvironmentBlock(env);
+    }
 
-	return retval;
+    return FALSE;
 }
 
 int process::test(int x) 
