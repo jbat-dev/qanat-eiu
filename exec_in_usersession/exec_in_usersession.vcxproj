@@ -158,6 +158,7 @@
     <ClCompile Include="exec_in_usersession.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="exec_in_usersession.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
