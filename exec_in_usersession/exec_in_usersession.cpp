@@ -207,7 +207,7 @@ BOOL process::createProcess(const std::wstring& app, const std::wstring& param, 
 
 int wmain(int argc, wchar_t** argv)
 {
-	//_wsetlocale(LC_ALL, _T(""));
+	_wsetlocale(LC_ALL, _T(""));
 
 	std::wstring wstrExeName(L"");
 	if (argc >=2){
