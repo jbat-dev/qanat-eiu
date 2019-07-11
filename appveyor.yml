@@ -10,7 +10,7 @@ platform: x64
 build:
   verbosity: minimal
 test_script:
-- cmd: vstest.console /logger:Appveyor "C:\projects\exec-in-usersession\x64\Release\*.dll"
+- cmd: vstest.console /logger:Appveyor "C:\projects\exec-in-usersession\x64\Release\UnitTest1.dll"
 artifacts:
 - path: '\$(platform)\$(configuration)\exec_in_usersession.exe'
   name: deliverable
