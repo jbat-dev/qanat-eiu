@@ -10,50 +10,45 @@
 
 #include "exec_in_usersession.h"
 
+DWORD process::getProcessId(const std::wstring& name)
+{
+    DWORD dwResult = 0;
+    CHandle snapshot(CreateToolhelp32Snapshot(2, 0)); // 2=TH32CS_SNAPPROCESS
+    if (snapshot == INVALID_HANDLE_VALUE) {
+        return 0;
+    }
 
-namespace {
-	// プログラム名が name のプロセスの ID を返す
-	DWORD getProcessId(const std::wstring& name)
-	{
-		DWORD dwResult = 0;
-		CHandle snapshot(CreateToolhelp32Snapshot(2, 0)); // 2=TH32CS_SNAPPROCESS
-		if (snapshot == INVALID_HANDLE_VALUE) {
-			return dwResult;
-		}
+    PROCESSENTRY32 entry = { sizeof(PROCESSENTRY32) };
+    if (!Process32First(snapshot, &entry)) {
+        return 0;
+    }
 
-		PROCESSENTRY32 entry = { sizeof(PROCESSENTRY32) };
-		if (!Process32First(snapshot, &entry)) {
-			return dwResult;
-		}
+    do {
+        if (wcscmp(entry.szExeFile, name.c_str()) == 0) {
+            dwResult = entry.th32ProcessID;
+            break;
+        }
+    } while (Process32Next(snapshot, &entry));
 
-		do {
-			if (wcscmp(entry.szExeFile, name.c_str()) == 0) {
-				dwResult = entry.th32ProcessID;
-				break;
-			}
-		} while (Process32Next(snapshot, &entry));
+    return dwResult;
+}
 
-		return dwResult;
-	}
+BOOL process::createProcessAsUser(const std::wstring& app, const std::wstring& param, HANDLE token, DWORD creationFlags, LPVOID env)
+{
+    wchar_t arg[MAX_PATH] = L"";
 
-	// token ユーザ，env 環境変数で app プログラムを実行（引数 param）
-	BOOL createProcessAsUser(const std::wstring& app, const std::wstring& param, HANDLE token, DWORD creationFlags, LPVOID env)
-	{
-		wchar_t arg[MAX_PATH] = L"";
+    wcscpy_s(arg, (param.empty() ? app.c_str() : (app + L" " + param).c_str()));
 
-		wcscpy_s(arg, (param.empty() ? app.c_str() : (app + L" " + param).c_str()));
+    STARTUPINFO  si = { sizeof(STARTUPINFO), nullptr };
+    si.lpDesktop = (LPWSTR)L"winsta0\\default";
 
-		STARTUPINFO         si = { sizeof(STARTUPINFO), nullptr };
-		si.lpDesktop = (LPWSTR)L"winsta0\\default";
+    PROCESS_INFORMATION pi = {};
+    const BOOL          retval = CreateProcessAsUser(token, nullptr, arg, nullptr, nullptr, FALSE, creationFlags, env, nullptr, &si, &pi);
 
-		PROCESS_INFORMATION pi = {};
-		const BOOL          retval = CreateProcessAsUser(token, nullptr, arg, nullptr, nullptr, FALSE, creationFlags, env, nullptr, &si, &pi);
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
 
-		CloseHandle(pi.hThread);
-		CloseHandle(pi.hProcess);
-
-		return retval;
-	}
+    return retval;
 }
 
 
@@ -192,17 +187,17 @@ int process::test(int x)
 // main
 int wmain(int argc, wchar_t** argv)
 {
-	_wsetlocale(LC_ALL, _T(""));
+    _wsetlocale(LC_ALL, _T(""));
 
-	std::wstring wstrExeName(L"");
-	if (argc >=2){
-		wstrExeName = argv[1];
-	}
+    std::wstring wstrExeName(L"");
+    if (argc >=2){
+        wstrExeName = argv[1];
+    }
 
-	std::wstring wstrExeArg(L"");
-	if (argc >= 3) {
-		wstrExeArg = argv[2];
-	}
+    std::wstring wstrExeArg(L"");
+    if (argc >= 3) {
+        wstrExeArg = argv[2];
+    }
 
     std::wstring wstrUserName(L"");
     if (argc >= 4) {
@@ -210,10 +205,10 @@ int wmain(int argc, wchar_t** argv)
     }
 
     std::wcout << L"app=" + wstrExeName << std::endl;
-	std::wcout << L"arg=" + wstrExeArg << std::endl;
+    std::wcout << L"arg=" + wstrExeArg << std::endl;
     std::wcout << L"unm=" + wstrUserName << std::endl;
 
     CHandle h(process::getProcessTokenHandleWithUserName(L"explorer.exe", &wstrUserName));
-	return process::createProcess(wstrExeName, wstrExeArg, h);
+    return process::createProcess(wstrExeName, wstrExeArg, h);
 }
 

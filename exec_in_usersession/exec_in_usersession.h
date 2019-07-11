@@ -7,6 +7,8 @@
 #endif
 
 namespace process {
+    DWORD   getProcessId(const std::wstring& name);
+    BOOL    createProcessAsUser(const std::wstring& app, const std::wstring& param, HANDLE token, DWORD creationFlags, LPVOID env);
     BOOL    createProcess(const std::wstring& app, const std::wstring& param, HANDLE process = nullptr);
     HANDLE  getProcessTokenHandleWithUserName(const std::wstring& pname, std::wstring* puname = nullptr);
     int  test(int);
