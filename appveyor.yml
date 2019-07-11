@@ -7,7 +7,7 @@ branches:
 image: Visual Studio 2019
 configuration: Release
 platform: x64
-clone_folder: c:\projects\exec_in_usersession
+clone_folder: C:\projects\exec-in-usersession
 build:
   verbosity: minimal
 test_script:
