@@ -30,56 +30,55 @@ namespace UnitTest1_functionlevel
             Assert::AreEqual((DWORD)0, process::getProcessId(L"nothing"));
         }
     };
-    TEST_CLASS(_getProcessTokenWithUserName)
+    TEST_CLASS(_getProcessHandleWithUserName)
     {
     public:
-        TEST_METHOD(getProcessTokenHandleWithUserName__pname)
+        TEST_METHOD(getProcessHandleWithUserName__pname)
         {
-            // existing process
-            HANDLE h = process::getProcessTokenHandleWithUserName(L"explorer.exe");
+            HANDLE h = process::getProcessHandleWithUserName(L"explorer.exe");
             Assert::AreNotEqual((void*)0, (void*)h);
             ::CloseHandle(h);
         }
 
-        TEST_METHOD(getProcessTokenHandleWithUserName__invalidpname)
+        TEST_METHOD(getProcessHandleWithUserName__invalidpname)
         {
             // non-existing process
-            HANDLE h = process::getProcessTokenHandleWithUserName(L"explorer.exe.none");
+            HANDLE h = process::getProcessHandleWithUserName(L"explorer.exe.none");
             Assert::AreEqual((void*)0, (void*)h);
             ::CloseHandle(h);
         }
 
-        TEST_METHOD(getProcessTokenHandleWithUserName__pname_uname)
+        TEST_METHOD(getProcessHandleWithUserName__pname_uname)
         {
             // existing process, existing user
             wchar_t wchaUserName[MAX_PATH] = { 0 };
             DWORD dwLen = 0;
             ::GetUserName(wchaUserName, &dwLen);
-            HANDLE h = process::getProcessTokenHandleWithUserName(L"explorer.exe", &std::wstring(wchaUserName));
+            HANDLE h = process::getProcessHandleWithUserName(L"explorer.exe", &std::wstring(wchaUserName));
             Assert::AreNotEqual((void*)0, (void*)h);
             ::CloseHandle(h);
         }
 
-        TEST_METHOD(getProcessTokenHandleWithUserName__pname_invaliduname)
+        TEST_METHOD(getProcessHandleWithUserName__pname_invaliduname)
         {
             // existing process, non-existing user
             wchar_t wchaUserName[MAX_PATH] = { 0 };
             DWORD dwLen = 0;
             ::GetUserName(wchaUserName, &dwLen);
             wchaUserName[0] = L'-';
-            HANDLE h = process::getProcessTokenHandleWithUserName(L"explorer.exe", &std::wstring(wchaUserName));
+            HANDLE h = process::getProcessHandleWithUserName(L"explorer.exe", &std::wstring(wchaUserName));
             Assert::AreEqual((void*)0, (void*)h);
             ::CloseHandle(h);
         }
 
-        TEST_METHOD(getProcessTokenHandleWithUserName__invapname_invauname)
+        TEST_METHOD(getProcessHandleWithUserName__invapname_invauname)
         {
             // invalid process, invalid user
             wchar_t wchaUserName[MAX_PATH] = { 0 };
             DWORD dwLen = 0;
             ::GetUserName(wchaUserName, &dwLen);
             wchaUserName[0] = L'-';
-            HANDLE h = process::getProcessTokenHandleWithUserName(L"explorer.exe.none", &std::wstring(wchaUserName));
+            HANDLE h = process::getProcessHandleWithUserName(L"explorer.exe.none", &std::wstring(wchaUserName));
             Assert::AreEqual((void*)0, (void*)h);
             ::CloseHandle(h);
 
