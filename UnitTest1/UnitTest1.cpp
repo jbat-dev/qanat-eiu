@@ -26,7 +26,7 @@ namespace UnitTest1_namespace
         }
         TEST_METHOD(getProcessTokenHandleWithUserName)
         {
-            HANDLE h = process::getProcessTokenHandleWithUserName(L"explorer.exe");
+            HANDLE h = process::getProcessHandleWithUserName(L"explorer.exe");
             Assert::AreNotEqual((void*)0, (void*)h);
             ::CloseHandle(h);
         }
