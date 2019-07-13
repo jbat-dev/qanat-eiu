@@ -156,10 +156,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="exec_in_usersession.cpp" />
+    <ClCompile Include="testservice.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="exec_in_usersession.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="testservice.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="exec_in_usersession.rc" />

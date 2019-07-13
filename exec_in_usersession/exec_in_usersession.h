@@ -17,3 +17,5 @@ namespace process {
 #endif
 
 #pragma comment(lib, "userenv.lib")
+
+extern std::wofstream fout;
