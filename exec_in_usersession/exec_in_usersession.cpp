@@ -3,7 +3,9 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <string>
+#include <map>
 #include <windows.h>
 #include <tlhelp32.h>
 #include <userenv.h>
@@ -13,12 +15,25 @@
 #include "testservice.h"
 
 
-std::wofstream fout;
+enum OPTION{
+    EXEPATH     =0,
+    EXEARG      =1,
+    USERNAME    =2,
+    LOGFILEPATH =3,
+};
+std::wstring g_optprefix(L"--xiu-");
+std::map<int, std::wstring>g_optmap{
+    {EXEPATH,       g_optprefix + L"exefullpath:"},
+    {EXEARG,        g_optprefix + L"exearg:"},
+    {USERNAME,      g_optprefix + L"un:"},
+    {LOGFILEPATH,   g_optprefix + L"lf:"},
+};
 
+std::wofstream fout;
 
 DWORD process::getProcessId(const std::wstring& name)
 {
-    std::wcout << L"process::getProcessId (" << name << L")<<< " << std::endl;
+    fout << L"process::getProcessId (" << name << L")<<< " << std::endl;
 
     DWORD dwResult = 0;
     CHandle snapshot(CreateToolhelp32Snapshot(2, 0)); // 2=TH32CS_SNAPPROCESS
@@ -38,13 +53,12 @@ DWORD process::getProcessId(const std::wstring& name)
         }
     } while (Process32Next(snapshot, &entry));
 
-    std::wcout << L"  getProcessId() >>> " << dwResult << std::endl;
+    fout << L"  getProcessId() >>> " << dwResult << std::endl;
     return dwResult;
 }
 
 BOOL process::createProcessAsUser(const std::wstring& app, const std::wstring& param, HANDLE token, DWORD creationFlags, LPVOID env)
 {
-    std::wcout << L"process::createProcessAsUser (app=" << app << L", param=" << param << L")<<< " << std::endl;
     fout << L"process::createProcessAsUser (app=" << app << L", param=" << param << L")<<< " << std::endl;
 
     wchar_t arg[MAX_PATH] = L"";
@@ -52,13 +66,13 @@ BOOL process::createProcessAsUser(const std::wstring& app, const std::wstring& p
 
     wcscpy_s(arg, (param.empty() ? app.c_str() : (app + L" " + param).c_str()));
 
+
     STARTUPINFO  si = { sizeof(STARTUPINFO), nullptr };
     si.lpDesktop = (LPWSTR)L"winsta0\\default";
 
     PROCESS_INFORMATION pi = {};
     const BOOL          retval = CreateProcessAsUser(token, nullptr, arg, nullptr, nullptr, FALSE, creationFlags, env, nullptr, &si, &pi);
     dwError = ::GetLastError();
-    std::wcout << L"  " << retval << L"= CreateProcessAsUser()/dwError=" << dwError << std::endl;
     fout << L"  " << retval << L"= CreateProcessAsUser(" << arg << L")/dwError=" << dwError << std::endl;
 
 
@@ -71,17 +85,15 @@ BOOL process::createProcessAsUser(const std::wstring& app, const std::wstring& p
 
 BOOL process::createProcess(const std::wstring& app, const std::wstring& param, HANDLE src_process)
 {
-    std::wcout << L"process::createProcess (app=" << app << L", param=" << param << L")<<< " << std::endl;
     fout << L"process::createProcess (app=" << app << L", param=" << param << L")<<< " << std::endl;
 
     DWORD dwError = 0;
 
     if (src_process == nullptr) {
-        std::wcout << L"  src_process_handle is null." << std::endl;
+        fout << L"  src_process_handle is null." << std::endl;
         CHandle target(OpenProcess(MAXIMUM_ALLOWED, FALSE, getProcessId(L"explorer.exe")));
         dwError = ::GetLastError();
         if (!target) {
-            std::wcout << L"  OpenProcess(explorer.exe) failed. dwError=" << dwError << std::endl;
             fout << L"  OpenProcess(explorer.exe) failed. dwError=" << dwError << std::endl;
             return FALSE;
         }
@@ -91,13 +103,13 @@ BOOL process::createProcess(const std::wstring& app, const std::wstring& param, 
     // src process is specified. 
     CHandle processToken;
     if (!OpenProcessToken(src_process, TOKEN_QUERY | TOKEN_DUPLICATE | TOKEN_ASSIGN_PRIMARY, &processToken.m_h)) {
-        std::wcout << L"  OpenProcessToken() failed." << std::endl;
+        fout << L"  OpenProcessToken() failed." << std::endl;
         return FALSE;
     }
 
     CHandle userToken;
     if (!DuplicateTokenEx(processToken, MAXIMUM_ALLOWED, nullptr, SecurityIdentification, TokenPrimary, &userToken.m_h)) {
-        std::wcout << L"  DuplicateTokenEx() failed." << std::endl;
+        fout << L"  DuplicateTokenEx() failed." << std::endl;
         return FALSE;
     }
 
@@ -112,12 +124,12 @@ BOOL process::createProcess(const std::wstring& app, const std::wstring& param, 
         creationFlags |= CREATE_UNICODE_ENVIRONMENT;
     }
     else {
-        std::wcout << L"  CreateEnvironmentBlock() failed." << std::endl;
+        fout << L"  CreateEnvironmentBlock() failed." << std::endl;
         env = nullptr;
     }
 
     if (!createProcessAsUser(app, param, userToken, creationFlags, env)) {
-        std::wcout << L"  createProcessAsUser() failed." << std::endl;
+        fout << L"  createProcessAsUser() failed." << std::endl;
         return FALSE;
     }
 
@@ -133,7 +145,7 @@ BOOL process::createProcess(const std::wstring& app, const std::wstring& param, 
 // プロセス名とユーザー名から、プロセストークン（オリジナル）の取得
 HANDLE process::getProcessHandleWithUserName(const std::wstring& pname, std::wstring* puname) {
 
-    std::wcout << L"process::getProcessHandleWithUserName (" << pname + L", " + ((puname == nullptr) ? L"nullptr" : *puname) << L")<<< " << std::endl;
+    fout << L"process::getProcessHandleWithUserName (" << pname + L", " + ((puname == nullptr) ? L"nullptr" : *puname) << L")<<< " << std::endl;
 
     HANDLE hResult = 0;
     DWORD dwError = 0;
@@ -236,72 +248,120 @@ int process::test(int x)
     return x;
 }
 
+
+// parseOption
+int parseOption(wchar_t** argv, int argc, std::map<std::wstring, std::wstring>& option) {
+    if (argc < 2) {
+        return 0;
+    }
+    std::wstring wstrExeName(argv[1]);
+    option.insert(std::make_pair(g_optmap.at(EXEPATH), wstrExeName));
+
+    int i = 2;
+    std::wstring wstrExeArg(L"");
+    if (argc >= 3 && std::wstring(argv[2]).find(g_optprefix) != 0) {
+        wstrExeArg = argv[2];
+        i++;
+    }
+    option.insert(std::make_pair(g_optmap.at(EXEARG), wstrExeArg));
+    
+    for (; i < argc; i++) {
+
+        std::wstring wstr(argv[i]);
+
+        fout << wstr << std::endl;
+        if (wstr.find(g_optprefix) != 0) {
+            fout << L"unkown option," + wstr << std::endl;
+            continue;
+        }
+        // option key
+        std::wstring wstrKey;
+        std::wstring wstrValue;
+
+        std::wstring::size_type pos;
+
+        pos = wstr.find(L":");
+        if (pos == std::wstring::npos) {
+            fout << L"unkown option," + wstr << std::endl;
+            continue;
+        }
+
+        wstrKey = wstr.substr(0, pos + 1);
+        wstrValue = wstr.substr(pos + 1);
+        fout << L"key=" + wstrKey + L", value=" + wstrValue << std::endl;
+
+        option.insert(std::make_pair(wstrKey, wstrValue));
+    }
+    return 1;
+}
+
+
+// logfile 
+int processOption_logfilefullpath(std::map<std::wstring, std::wstring>& option) {
+    std::wstring wstrFileFullPath;
+    std::ios_base::openmode fmode = 0;
+
+    if (option.find(g_optmap.at(LOGFILEPATH)) != option.end()) {
+        wstrFileFullPath = option.at(g_optmap.at(LOGFILEPATH));
+    }    
+    fout.open(wstrFileFullPath.c_str(), std::ios::in | std::ios::out | std::ios::trunc);
+    fout << wstrFileFullPath << std::endl;
+    return 1;
+}
+
+
+// main_exit
+int main_exit(int ret_code) {
+    fout.close();
+    return ret_code;
+}
+
+
 // main
 int wmain(int argc, wchar_t** argv)
 {
+    int iRet = 0;
     _wsetlocale(LC_ALL, _T(""));
-
-
-    if (argc <= 1) {
-        std::wcout << L"One argument required at least." << std::endl;
-        return 0;
-    }
 
     // check service mode
     if (_wcsicmp(argv[1], L"--register") == 0) { 
         service::registerService();
-        return 0;
+        return main_exit(0);
     }
-    
     if (_wcsicmp(argv[1], L"--unregister") == 0) { 
         service::unregisterService();
-        return 0;
+        return main_exit(0);
     }
     if (_wcsicmp(argv[1], L"--start") == 0) { 
-
-//        std::wstring strLogFileName = L"c:\\temp\\log.txt";
-//        fout.open(L"c:\\temp\\log2.txt", std::ios::app);
-
-//        fout << L"starting testservice ..." << std::endl;
-
         SERVICE_TABLE_ENTRY services[] = {
             { service::SERVICE_NAME, &service::serviceMain }, { nullptr, nullptr }
         };
         StartServiceCtrlDispatcher(services);
-
-//        fout << L"ending testservice ..." << std::endl;
-//        fout << std::endl;
-//        fout << std::endl;
-//        fout.close();
-
-        return 0;
+        return main_exit(0);
     }
-
   
 
     // this is main stream.
-    fout.open(L"c:\\temp\\log2.txt", std::ios::app);
-
-    std::wstring wstrExeName(L"");
-    if (argc >=2){
-        wstrExeName = argv[1];
+    if (argc <= 1) {
+        fout << L"One argument required at least." << std::endl;
+        return main_exit(0);
     }
 
-    std::wstring wstrExeArg(L"");
-    if (argc >= 3) {
-        wstrExeArg = argv[2];
+    std::map<std::wstring, std::wstring> option;
+    parseOption(argv, argc, option);
+    {
+        processOption_logfilefullpath(option);
     }
 
+    std::wstring wstrExeName(option.at(g_optmap.at(EXEPATH)));
+    std::wstring wstrExeArg(option.at(g_optmap.at(EXEARG)));
     std::wstring wstrUserName(L"");
-    if (argc >= 4) {
-        wstrUserName = argv[3];
+    if (option.find(g_optmap.at(USERNAME)) != option.end()) {
+        wstrUserName = option.at(g_optmap.at(USERNAME));
     }
-
-    std::wcout << L"app=" + wstrExeName << std::endl;
-    std::wcout << L"arg=" + wstrExeArg << std::endl;
-    std::wcout << L"unm=" + wstrUserName << std::endl;
-
+    
     CHandle h(process::getProcessHandleWithUserName(L"explorer.exe", &wstrUserName));
-    return process::createProcess(wstrExeName, wstrExeArg, h.m_h);
+    iRet = process::createProcess(wstrExeName, wstrExeArg, h.m_h);
+    return main_exit(iRet);
 }
 
