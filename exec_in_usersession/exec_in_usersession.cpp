@@ -151,6 +151,7 @@ HANDLE process::getProcessHandleWithUserName(const std::wstring& pname, std::wst
     DWORD dwError = 0;
     CHandle snapshot(CreateToolhelp32Snapshot(2, 0)); // 2=TH32CS_SNAPPROCESS
     if (snapshot == INVALID_HANDLE_VALUE) {
+        fout << L"  process::getProcessHandleWithUserName : failed at CreateToolhelp32Snapshot." << std::endl;
         return nullptr;
     }
 
@@ -227,11 +228,13 @@ HANDLE process::getProcessHandleWithUserName(const std::wstring& pname, std::wst
 
         // check
         if (_wcsicmp(uname.c_str(), (const wchar_t*)wchaUserName) != 0) {
+            fout << L"  process::getProcessHandleWithUserName : not mached. found=" << wchaUserName << std::endl;
             ::CloseHandle(hProcessCheck);
             continue;
         }
 
         // yes 
+        fout << L"  process::getProcessHandleWithUserName : We got a expected user's process handle." << std::endl;
         hResult = hProcessCheck;
         break;
     } while (Process32Next(snapshot, &entry));
