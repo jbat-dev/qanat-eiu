@@ -31,8 +31,10 @@ std::map<int, std::wstring>g_optmap{
 
 std::wofstream fout;
 
+///////////////////////////////////////////////////////////////////////////////////
 DWORD process::getProcessId(const std::wstring& name)
 {
+    static const wchar_t FUNCNAME[] = L"process::getProcessId";
     fout << L"process::getProcessId (" << name << L")<<< " << std::endl;
 
     DWORD dwResult = 0;
@@ -57,8 +59,10 @@ DWORD process::getProcessId(const std::wstring& name)
     return dwResult;
 }
 
+///////////////////////////////////////////////////////////////////////////////////
 BOOL process::createProcessAsUser(const std::wstring& app, const std::wstring& param, HANDLE token, DWORD creationFlags, LPVOID env)
 {
+    static const wchar_t FUNCNAME[] = L"process::createProcessAsUser";
     fout << L"process::createProcessAsUser (app=" << app << L", param=" << param << L")<<< " << std::endl;
 
     wchar_t arg[MAX_PATH] = L"";
@@ -83,8 +87,10 @@ BOOL process::createProcessAsUser(const std::wstring& app, const std::wstring& p
 }
 
 
+///////////////////////////////////////////////////////////////////////////////////
 BOOL process::createProcess(const std::wstring& app, const std::wstring& param, HANDLE src_process)
 {
+    static const wchar_t FUNCNAME[] = L"process::createProcess";
     fout << L"process::createProcess (app=" << app << L", param=" << param << L")<<< " << std::endl;
 
     DWORD dwError = 0;
@@ -141,10 +147,10 @@ BOOL process::createProcess(const std::wstring& app, const std::wstring& param, 
 }
 
 
-
+///////////////////////////////////////////////////////////////////////////////////
 // プロセス名とユーザー名から、プロセストークン（オリジナル）の取得
 HANDLE process::getProcessHandleWithUserName(const std::wstring& pname, std::wstring* puname) {
-
+    static const wchar_t FUNCNAME[] = L"process::getProcessHandleWithUserName";
     fout << L"process::getProcessHandleWithUserName (" << pname + L", " + ((puname == nullptr) ? L"nullptr" : *puname) << L")<<< " << std::endl;
 
     HANDLE hResult = 0;
@@ -244,16 +250,18 @@ HANDLE process::getProcessHandleWithUserName(const std::wstring& pname, std::wst
 }
 
 
-
+///////////////////////////////////////////////////////////////////////////////////
 // function to check test framwork
 int process::test(int x) 
 {
     return x;
 }
 
-
+///////////////////////////////////////////////////////////////////////////////////
 // parseOption
 int parseOption(wchar_t** argv, int argc, std::map<std::wstring, std::wstring>& option) {
+    static const wchar_t FUNCNAME[] = L"parseOption";
+
     if (argc < 2) {
         return 0;
     }
@@ -298,9 +306,10 @@ int parseOption(wchar_t** argv, int argc, std::map<std::wstring, std::wstring>& 
     return 1;
 }
 
-
+///////////////////////////////////////////////////////////////////////////////////
 // logfile 
 int processOption_logfilefullpath(std::map<std::wstring, std::wstring>& option) {
+    static const wchar_t FUNCNAME[] = L"processOption_logfilefullpath";
     std::wstring wstrFileFullPath;
     std::ios_base::openmode fmode = 0;
 
@@ -312,17 +321,20 @@ int processOption_logfilefullpath(std::map<std::wstring, std::wstring>& option) 
     return 1;
 }
 
-
+///////////////////////////////////////////////////////////////////////////////////
 // main_exit
 int main_exit(int ret_code) {
+    static const wchar_t FUNCNAME[] = L"main_exit";
     fout.close();
     return ret_code;
 }
 
 
-// main
+///////////////////////////////////////////////////////////////////////////////////
+// main 
 int wmain(int argc, wchar_t** argv)
 {
+    static const wchar_t FUNCNAME[] = L"wmain";
     int iRet = 0;
     _wsetlocale(LC_ALL, _T(""));
 
