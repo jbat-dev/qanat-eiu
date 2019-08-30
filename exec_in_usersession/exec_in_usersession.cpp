@@ -32,15 +32,18 @@ std::map<int, std::wstring>g_optmap{
 
 #pragma warning(push)
 #pragma warning(disable:4996)
-#define LOG(x) {std::time_t t= std::time(nullptr); std::wstring MSG; fout << std::asctime(std::localtime(&t)) << L"\t" << MSG << L"[" << FUNCNAME << L"]" << L":" << x  << std::endl;}
-#define RETURN(x) {std::wstring MSG; fout << MSG << L"[" << FUNCNAME << L"]" << L":>>> " << x << std::endl; return x;}
+#define LOG(x) {wchar_t wchaTimeBuf[255] = {0}; std::time_t t= std::time(nullptr); std::wcsftime(wchaTimeBuf, sizeof(wchaTimeBuf), L"%F %T", std::localtime(&t));std::wstring MSG; fout << wchaTimeBuf << L"\t" << MSG << L"[" << FUNCNAME << L"]" << L":" << x  << std::endl;}
+#define RETURN(x) {wchar_t wchaTimeBuf[255] = {0}; std::time_t t= std::time(nullptr); std::wcsftime(wchaTimeBuf, sizeof(wchaTimeBuf), L"%F %T", std::localtime(&t));std::wstring MSG; fout << wchaTimeBuf << L"\t" << MSG << L"[" << FUNCNAME << L"]" << L":<<< (" << x  << ")" << std::endl;return x;}
 
 std::wofstream fout;
+
+
+
 
 DWORD process::getProcessId(const std::wstring& name)
 {
     static const wchar_t FUNCNAME[] = L"process::getProcessId";
-    LOG(L"<<<");
+    LOG(L">>>");
     LOG(L"  name:" << name );
 
     DWORD dwResult = 0;
@@ -61,7 +64,6 @@ DWORD process::getProcessId(const std::wstring& name)
         }
     } while (Process32Next(snapshot, &entry));
 
-    fout << L"  getProcessId() >>> " << dwResult << std::endl;
     RETURN(dwResult);
 }
 
@@ -69,7 +71,7 @@ DWORD process::getProcessId(const std::wstring& name)
 BOOL process::createProcessAsUser(const std::wstring& app, const std::wstring& param, HANDLE token, DWORD creationFlags, LPVOID env)
 {
     static const wchar_t FUNCNAME[] = L"process::createProcessAsUser";
-    LOG(L"  <<<");
+    LOG(L">>>");
 
     LOG(L"  app=" << app << L"param=" << param);
 
@@ -99,9 +101,9 @@ BOOL process::createProcessAsUser(const std::wstring& app, const std::wstring& p
 BOOL process::createProcess(const std::wstring& app, const std::wstring& param, HANDLE src_process)
 {
     static const wchar_t FUNCNAME[] = L"process::createProcess";
-    LOG(L"<<<");
+    LOG(L">>>");
 
-    LOG(L"  app=" << app << L", param=" << param << L"src_process=" << src_process);
+    LOG(L"  app=" << app << L", param=" << param << L" src_process()=" << src_process);
 
     DWORD dwError = 0;
 
@@ -165,7 +167,7 @@ BOOL process::createProcess(const std::wstring& app, const std::wstring& param, 
 // プロセス名とユーザー名から、プロセストークン（オリジナル）の取得
 HANDLE process::getProcessHandleWithUserName(const std::wstring& pname, std::wstring* puname) {
     static const wchar_t FUNCNAME[] = L"process::getProcessHandleWithUserName";
-    LOG(L"<<<");
+    LOG(L">>>");
     LOG(L"  pname=" << pname << L",puname=" << ((puname == NULL) ? L"nullptr" : *puname));
 
     HANDLE hResult = 0;
@@ -287,6 +289,7 @@ int process::test(int x)
 // parseOption
 int parseOption(wchar_t** argv, int argc, std::map<std::wstring, std::wstring>& option) {
     static const wchar_t FUNCNAME[] = L"parseOption";
+    LOG(L">>>");
 
     if (argc < 2) {
         RETURN(0);
@@ -336,6 +339,7 @@ int parseOption(wchar_t** argv, int argc, std::map<std::wstring, std::wstring>& 
 // logfile 
 int processOption_logfilefullpath(std::map<std::wstring, std::wstring>& option) {
     static const wchar_t FUNCNAME[] = L"processOption_logfilefullpath";
+    LOG(L">>>");
     std::wstring wstrFileFullPath;
     std::ios_base::openmode fmode = 0;
 
@@ -383,7 +387,7 @@ int wmain(int argc, wchar_t** argv)
   
 
     // this is main stream.
-    LOG(L"  >>>");
+    LOG(L">>>");
     if (argc <= 1) {
         fout << L"One argument required at least." << std::endl;
         return main_exit(0);
