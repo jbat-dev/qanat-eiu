@@ -156,6 +156,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="exec_in_usersession.cpp" />
+    <ClCompile Include="myutil.cpp" />
     <ClCompile Include="testservice.cpp" />
   </ItemGroup>
   <ItemGroup>
