@@ -368,6 +368,13 @@ int wmain(int argc, wchar_t** argv)
     int iRet = 0;
     _wsetlocale(LC_ALL, _T(""));
 
+    // this is main stream.
+    LOG(L">>>");
+    if (argc <= 1) {
+        fout << L"One argument required at least." << std::endl;
+        return main_exit(0);
+    }
+
     // check service mode
     if (_wcsicmp(argv[1], L"--register") == 0) { 
         service::registerService();
@@ -382,14 +389,6 @@ int wmain(int argc, wchar_t** argv)
             { service::SERVICE_NAME, &service::serviceMain }, { nullptr, nullptr }
         };
         StartServiceCtrlDispatcher(services);
-        return main_exit(0);
-    }
-  
-
-    // this is main stream.
-    LOG(L">>>");
-    if (argc <= 1) {
-        fout << L"One argument required at least." << std::endl;
         return main_exit(0);
     }
 
@@ -408,6 +407,7 @@ int wmain(int argc, wchar_t** argv)
     
     CHandle h(process::getProcessHandleWithUserName(L"explorer.exe", &wstrUserName));
     iRet = process::createProcess(wstrExeName, wstrExeArg, h.m_h);
+    std::cout << iRet << std::endl;
     return main_exit(iRet);
 }
 
