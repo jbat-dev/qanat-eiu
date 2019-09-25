@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 #include <map>
+#include <ctime>
 #include <windows.h>
 #include <tlhelp32.h>
 #include <userenv.h>
@@ -29,21 +30,31 @@ std::map<int, std::wstring>g_optmap{
     {LOGFILEPATH,   g_optprefix + L"lf:"},
 };
 
+#pragma warning(push)
+#pragma warning(disable:4996)
+#define LOG(x) {wchar_t wchaTimeBuf[255] = {0}; std::time_t t= std::time(nullptr); std::wcsftime(wchaTimeBuf, sizeof(wchaTimeBuf), L"%F %T", std::localtime(&t));std::wstring MSG; fout << wchaTimeBuf << L"\t" << MSG << L"[" << FUNCNAME << L"]" << L":" << x  << std::endl;}
+#define RETURN(x) {wchar_t wchaTimeBuf[255] = {0}; std::time_t t= std::time(nullptr); std::wcsftime(wchaTimeBuf, sizeof(wchaTimeBuf), L"%F %T", std::localtime(&t));std::wstring MSG; fout << wchaTimeBuf << L"\t" << MSG << L"[" << FUNCNAME << L"]" << L":<<< (" << x  << ")" << std::endl;return x;}
+
 std::wofstream fout;
+
+
+
 
 DWORD process::getProcessId(const std::wstring& name)
 {
-    fout << L"process::getProcessId (" << name << L")<<< " << std::endl;
+    static const wchar_t FUNCNAME[] = L"process::getProcessId";
+    LOG(L">>>");
+    LOG(L"  name:" << name );
 
     DWORD dwResult = 0;
     CHandle snapshot(CreateToolhelp32Snapshot(2, 0)); // 2=TH32CS_SNAPPROCESS
     if (snapshot == INVALID_HANDLE_VALUE) {
-        return 0;
+        RETURN(0);
     }
 
     PROCESSENTRY32 entry = { sizeof(PROCESSENTRY32) };
     if (!Process32First(snapshot, &entry)) {
-        return 0;
+        RETURN(0);
     }
 
     do {
@@ -53,13 +64,16 @@ DWORD process::getProcessId(const std::wstring& name)
         }
     } while (Process32Next(snapshot, &entry));
 
-    fout << L"  getProcessId() >>> " << dwResult << std::endl;
-    return dwResult;
+    RETURN(dwResult);
 }
 
+///////////////////////////////////////////////////////////////////////////////////
 BOOL process::createProcessAsUser(const std::wstring& app, const std::wstring& param, HANDLE token, DWORD creationFlags, LPVOID env)
 {
-    fout << L"process::createProcessAsUser (app=" << app << L", param=" << param << L")<<< " << std::endl;
+    static const wchar_t FUNCNAME[] = L"process::createProcessAsUser";
+    LOG(L">>>");
+
+    LOG(L"  app=" << app << L"param=" << param);
 
     wchar_t arg[MAX_PATH] = L"";
     DWORD dwError = 0;
@@ -73,44 +87,50 @@ BOOL process::createProcessAsUser(const std::wstring& app, const std::wstring& p
     PROCESS_INFORMATION pi = {};
     const BOOL          retval = CreateProcessAsUser(token, nullptr, arg, nullptr, nullptr, FALSE, creationFlags, env, nullptr, &si, &pi);
     dwError = ::GetLastError();
-    fout << L"  " << retval << L"= CreateProcessAsUser(" << arg << L")/dwError=" << dwError << std::endl;
+    LOG(L"  " << retval << L"= CreateProcessAsUser()/dwError=" << dwError);
 
 
     CloseHandle(pi.hThread);
     CloseHandle(pi.hProcess);
 
-    return retval;
+    RETURN(retval);
 }
 
 
+///////////////////////////////////////////////////////////////////////////////////
 BOOL process::createProcess(const std::wstring& app, const std::wstring& param, HANDLE src_process)
 {
-    fout << L"process::createProcess (app=" << app << L", param=" << param << L")<<< " << std::endl;
+    static const wchar_t FUNCNAME[] = L"process::createProcess";
+    LOG(L">>>");
+
+    LOG(L"  app=" << app << L", param=" << param << L" src_process()=" << src_process);
 
     DWORD dwError = 0;
 
     if (src_process == nullptr) {
-        fout << L"  src_process_handle is null." << std::endl;
+        LOG(L"  src_process_handle is null.");
         CHandle target(OpenProcess(MAXIMUM_ALLOWED, FALSE, getProcessId(L"explorer.exe")));
         dwError = ::GetLastError();
         if (!target) {
-            fout << L"  OpenProcess(explorer.exe) failed. dwError=" << dwError << std::endl;
-            return FALSE;
+            LOG(L"  OpenProcess(explorer.exe) failed. dwError=" << dwError);
+            RETURN(FALSE);
         }
-        return createProcess(app, param, target);
+        RETURN(createProcess(app, param, target));
     }
 
     // src process is specified. 
     CHandle processToken;
     if (!OpenProcessToken(src_process, TOKEN_QUERY | TOKEN_DUPLICATE | TOKEN_ASSIGN_PRIMARY, &processToken.m_h)) {
-        fout << L"  OpenProcessToken() failed." << std::endl;
-        return FALSE;
+        dwError = ::GetLastError();
+        LOG(L"  OpenProcessToken() failed./dwError=" << dwError);
+        RETURN(FALSE);
     }
 
     CHandle userToken;
     if (!DuplicateTokenEx(processToken, MAXIMUM_ALLOWED, nullptr, SecurityIdentification, TokenPrimary, &userToken.m_h)) {
-        fout << L"  DuplicateTokenEx() failed." << std::endl;
-        return FALSE;
+        dwError = ::GetLastError();
+        LOG(L"  DuplicateTokenEx() failed./dwError=" << dwError);
+        RETURN(FALSE);
     }
 
     DWORD sessionId = 0;
@@ -124,41 +144,46 @@ BOOL process::createProcess(const std::wstring& app, const std::wstring& param, 
         creationFlags |= CREATE_UNICODE_ENVIRONMENT;
     }
     else {
-        fout << L"  CreateEnvironmentBlock() failed." << std::endl;
+        dwError = ::GetLastError();
+        LOG(L"  CreateEnvironmentBlock() failed./dwError=" << dwError);
         env = nullptr;
     }
 
     if (!createProcessAsUser(app, param, userToken, creationFlags, env)) {
-        fout << L"  createProcessAsUser() failed." << std::endl;
-        return FALSE;
+        dwError = ::GetLastError();
+        LOG(L"  createProcessAsUser() failed./dwError=" << dwError);
+        RETURN(FALSE);
     }
 
     if (env != nullptr) {
         DestroyEnvironmentBlock(env);
     }
 
-    return TRUE;
+    RETURN(TRUE);
 }
 
 
-
+///////////////////////////////////////////////////////////////////////////////////
 // プロセス名とユーザー名から、プロセストークン（オリジナル）の取得
 HANDLE process::getProcessHandleWithUserName(const std::wstring& pname, std::wstring* puname) {
-
-    fout << L"process::getProcessHandleWithUserName (" << pname + L", " + ((puname == nullptr) ? L"nullptr" : *puname) << L")<<< " << std::endl;
+    static const wchar_t FUNCNAME[] = L"process::getProcessHandleWithUserName";
+    LOG(L">>>");
+    LOG(L"  pname=" << pname << L",puname=" << ((puname == NULL) ? L"nullptr" : *puname));
 
     HANDLE hResult = 0;
     DWORD dwError = 0;
     CHandle snapshot(CreateToolhelp32Snapshot(2, 0)); // 2=TH32CS_SNAPPROCESS
     if (snapshot == INVALID_HANDLE_VALUE) {
-        fout << L"  process::getProcessHandleWithUserName : failed at CreateToolhelp32Snapshot." << std::endl;
-        return nullptr;
+        LOG(L"  failed at CreateToolhelp32Snapshot.dwError=" << dwError );
+        RETURN(NULL);
     }
 
     // プロセスサーチ
     PROCESSENTRY32 entry = { sizeof(PROCESSENTRY32) };
+    dwError = ::GetLastError();
     if (!Process32First(snapshot, &entry)) {
-        return nullptr;
+        LOG(L"  failed at Process32First./dwError=" << dwError );
+        RETURN(NULL);
     }
 
     // name check 
@@ -166,6 +191,7 @@ HANDLE process::getProcessHandleWithUserName(const std::wstring& pname, std::wst
         HANDLE hProcessCheck = nullptr;
         // check name
         if (_wcsicmp(entry.szExeFile, pname.c_str()) != 0) {
+            LOG(L"  info:process name not matched./" << entry.szExeFile);
             continue;
         }
 
@@ -182,11 +208,14 @@ HANDLE process::getProcessHandleWithUserName(const std::wstring& pname, std::wst
         if (!OpenProcessToken(hProcessCheck, TOKEN_QUERY | TOKEN_DUPLICATE | TOKEN_ASSIGN_PRIMARY, &processToken.m_h)) {
             dwError = ::GetLastError();
             ::CloseHandle(hProcessCheck);
+            LOG(L"  failed at OpenProcessToken()/dwError=" << dwError);
             continue;
         }
         CHandle userToken;
         if (!DuplicateTokenEx(processToken.m_h, MAXIMUM_ALLOWED, nullptr, SecurityIdentification, TokenPrimary, &userToken.m_h)) {
+            dwError = ::GetLastError();
             ::CloseHandle(hProcessCheck);
+            LOG(L"  failed at DuplicateTokenEx()/dwError=" << dwError);
             continue;
         }
 
@@ -209,16 +238,22 @@ HANDLE process::getProcessHandleWithUserName(const std::wstring& pname, std::wst
 
             GetTokenInformation(userToken.m_h, TokenUser, NULL, 0, &dwSize);
             PTOKEN_USER pbyBuf = (PTOKEN_USER)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwSize);
+            dwError = ::GetLastError();
             if (pbyBuf == nullptr) {
+                LOG(L"  failed at HeapAlloc()/dwError=" << dwError);
                 ::CloseHandle(hProcessCheck);
                 continue;
             }
             if (!GetTokenInformation(userToken.m_h, TokenUser, (void*)pbyBuf, dwSize, &dwNeeded)) {
+                dwError = ::GetLastError();
+                LOG(L"  failed at GetTokenInformation()/dwError=" << dwError);
                 ::HeapFree(GetProcessHeap(), 0, (void*)pbyBuf);
                 ::CloseHandle(hProcessCheck);
                 continue;
             }
             if (!LookupAccountSid(NULL, pbyBuf->User.Sid, wchaUserName, &dwSizeUserName, wchaDomainName, &dwSizeDomain, &sidName)) {
+                dwError = ::GetLastError();
+                LOG(L"  failed at LookupAccountSid()/dwError=" << dwError);
                 ::HeapFree(GetProcessHeap(), 0, (void*)pbyBuf);
                 ::CloseHandle(hProcessCheck);
                 continue;
@@ -228,34 +263,36 @@ HANDLE process::getProcessHandleWithUserName(const std::wstring& pname, std::wst
 
         // check
         if (_wcsicmp(uname.c_str(), (const wchar_t*)wchaUserName) != 0) {
-            fout << L"  process::getProcessHandleWithUserName : not mached. found=" << wchaUserName << std::endl;
+            LOG(L"  not mached. found=" << wchaUserName);
             ::CloseHandle(hProcessCheck);
             continue;
         }
 
         // yes 
-        fout << L"  process::getProcessHandleWithUserName : We got a expected user's process handle." << std::endl;
+        LOG(L"  We got a expected user's process handle.");
         hResult = hProcessCheck;
         break;
     } while (Process32Next(snapshot, &entry));
     ::CloseHandle(snapshot);
-
-    return hResult;
+    RETURN(hResult);
 }
 
 
-
+///////////////////////////////////////////////////////////////////////////////////
 // function to check test framwork
 int process::test(int x) 
 {
     return x;
 }
 
-
+///////////////////////////////////////////////////////////////////////////////////
 // parseOption
 int parseOption(wchar_t** argv, int argc, std::map<std::wstring, std::wstring>& option) {
+    static const wchar_t FUNCNAME[] = L"parseOption";
+    LOG(L">>>");
+
     if (argc < 2) {
-        return 0;
+        RETURN(0);
     }
     std::wstring wstrExeName(argv[1]);
     option.insert(std::make_pair(g_optmap.at(EXEPATH), wstrExeName));
@@ -274,7 +311,7 @@ int parseOption(wchar_t** argv, int argc, std::map<std::wstring, std::wstring>& 
 
         fout << wstr << std::endl;
         if (wstr.find(g_optprefix) != 0) {
-            fout << L"unkown option," + wstr << std::endl;
+            LOG(L"  unkown option," + wstr);
             continue;
         }
         // option key
@@ -285,22 +322,24 @@ int parseOption(wchar_t** argv, int argc, std::map<std::wstring, std::wstring>& 
 
         pos = wstr.find(L":");
         if (pos == std::wstring::npos) {
-            fout << L"unkown option," + wstr << std::endl;
+            LOG(L"  unkown option,:" + wstr);
             continue;
         }
 
         wstrKey = wstr.substr(0, pos + 1);
         wstrValue = wstr.substr(pos + 1);
-        fout << L"key=" + wstrKey + L", value=" + wstrValue << std::endl;
+        LOG(L"  key=" + wstrKey + L", value=" + wstrValue);
 
         option.insert(std::make_pair(wstrKey, wstrValue));
     }
-    return 1;
+    RETURN(1);
 }
 
-
+///////////////////////////////////////////////////////////////////////////////////
 // logfile 
 int processOption_logfilefullpath(std::map<std::wstring, std::wstring>& option) {
+    static const wchar_t FUNCNAME[] = L"processOption_logfilefullpath";
+    LOG(L">>>");
     std::wstring wstrFileFullPath;
     std::ios_base::openmode fmode = 0;
 
@@ -309,22 +348,32 @@ int processOption_logfilefullpath(std::map<std::wstring, std::wstring>& option) 
     }    
     fout.open(wstrFileFullPath.c_str(), std::ios::in | std::ios::out | std::ios::trunc);
     fout << wstrFileFullPath << std::endl;
-    return 1;
+    RETURN(1);
 }
 
-
+///////////////////////////////////////////////////////////////////////////////////
 // main_exit
 int main_exit(int ret_code) {
+    static const wchar_t FUNCNAME[] = L"main_exit";
     fout.close();
     return ret_code;
 }
 
 
-// main
+///////////////////////////////////////////////////////////////////////////////////
+// main 
 int wmain(int argc, wchar_t** argv)
 {
+    static const wchar_t FUNCNAME[] = L"wmain";
     int iRet = 0;
     _wsetlocale(LC_ALL, _T(""));
+
+    // this is main stream.
+    LOG(L">>>");
+    if (argc <= 1) {
+        fout << L"One argument required at least." << std::endl;
+        return main_exit(0);
+    }
 
     // check service mode
     if (_wcsicmp(argv[1], L"--register") == 0) { 
@@ -340,13 +389,6 @@ int wmain(int argc, wchar_t** argv)
             { service::SERVICE_NAME, &service::serviceMain }, { nullptr, nullptr }
         };
         StartServiceCtrlDispatcher(services);
-        return main_exit(0);
-    }
-  
-
-    // this is main stream.
-    if (argc <= 1) {
-        fout << L"One argument required at least." << std::endl;
         return main_exit(0);
     }
 
@@ -365,6 +407,9 @@ int wmain(int argc, wchar_t** argv)
     
     CHandle h(process::getProcessHandleWithUserName(L"explorer.exe", &wstrUserName));
     iRet = process::createProcess(wstrExeName, wstrExeArg, h.m_h);
+    std::cout << iRet << std::endl;
     return main_exit(iRet);
 }
 
+
+#pragma warning(pop)

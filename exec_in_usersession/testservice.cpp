@@ -108,12 +108,14 @@ namespace service {
 
         SetServiceStatus(gServiceHandle, &gServiceStatus);
 
-        fout.open(L"c:\\temp\\log2.txt", std::ios::app);
-        fout << "test" << std::endl;
+
+        //fout.open(L"c:\\temp\\log2.txt", std::ios::app);
+        //fout << "this line from testservcie" << std::endl;
 
         // start service
         { 
-            ::WinExec("C:\\Users\\J32330\\source\\repos\\thabara\\exec_in_usersession3\\x64\\Debug\\exec_in_usersession.exe c:\\windows\\notepad.exe c:\\mytest.ini --xiu-un:Administrator --xiu-lf:c:\\temp\\log2.txt", SW_NORMAL);
+            ::WinExec("D:\\_source\\repos\\jbat-dev\\qanat-eiu\\x64\\Release\\exec_in_usersession.exe c:\\windows\\notepad.exe c:\\mytest.ini --xiu-un:Administrator --xiu-lf:c:\\temp\\log2.txt", SW_NORMAL);
+//            ::WinExec("D:\\_source\\repos\\jbat-dev\\qanat-eiu\\x64\\Release\\exec_in_usersession.exe" "c:\\windows\\notepad.exe", SW_NORMAL);
         }
 
         ::Sleep(3000);
@@ -128,9 +130,9 @@ namespace service {
             SetServiceStatus(gServiceHandle, &gServiceStatus);
         }
 
-        fout << std::endl;
-        fout << std::endl;
-        fout.close();
+        //fout << std::endl;
+        //fout << std::endl;
+        //fout.close();
 
     }
 }
