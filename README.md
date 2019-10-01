@@ -8,13 +8,13 @@ Target user session must be exist. Auto login is not supported.
 ## useage
 exec_in_usersession.exe target_exe ["args for target_exe"] [options]
 
-example1:
+example1:  
 exec_in_usersession.exe c:\windows\notepad.exe c:\mytest.txt
 
-example2: exe-args have multiple args separated by a space.
+example2: exe-args have multiple args separated by a space.  
 exec_in_usersession.exe cp "c:\mytest.txt c:\mytest.2.txt"
 
-example3: specify a user
+example3: specify a user  
 exec_in_usersession.exe c:\mytest.ini --xiu-un:username
 
 ## copyright
