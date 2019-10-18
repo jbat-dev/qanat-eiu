@@ -2,7 +2,7 @@
 This program makes it possible a specified windows program to  be in the Usersession, although it is executeed in session 0, windows service programu.
 
 # requirement
-Should be launched from SYSTEM account typically.
+Should be launched from LOCAL SYSTEM account normaly.
 Target user session must be exist. Auto login is not supported.
 
 ## useage
