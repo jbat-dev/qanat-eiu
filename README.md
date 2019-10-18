@@ -15,7 +15,7 @@ example2: exe-args have multiple args separated by a space.
 exec_in_usersession.exe cp "c:\mytest.txt c:\mytest.2.txt"
 
 example3: specify a user  
-exec_in_usersession.exe c:\mytest.ini --xiu-un:username
+exec_in_usersession.exe c:\windows\notepad.exe c:\mytest.ini --xiu-un:username
 
 ## copyright
 JB Advanced Technology Inc. and okahashi117 2019
