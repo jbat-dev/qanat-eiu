@@ -17,6 +17,9 @@ exec_in_usersession.exe cp "c:\mytest.txt c:\mytest.2.txt"
 example3: specify a user  
 exec_in_usersession.exe c:\windows\notepad.exe c:\mytest.ini --xiu-un:username
 
+example4: output a logfile with example3.
+exec_in_usersession.exe c:\windows\notepad.exe c:\mytest.ini --xiu-un:username --xiu-lf:c:\mylogfile.txt
+
 ## copyright
 JB Advanced Technology Inc. and okahashi117 2019
 
